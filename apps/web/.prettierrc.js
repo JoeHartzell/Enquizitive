@@ -1,15 +1,13 @@
-import root from "../../.prettierrc";
-
 export default {
-  ...root,
   trailingComma: "none",
+  printWidth: 180,
   plugins: ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
   overrides: [
     {
       files: "*.svelte",
       options: {
-        parser: "svelte",
-      },
-    },
-  ],
+        parser: "svelte"
+      }
+    }
+  ]
 };
