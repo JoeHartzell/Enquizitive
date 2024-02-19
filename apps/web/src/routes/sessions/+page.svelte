@@ -1,12 +1,20 @@
 <script lang="ts">
+  import { page } from "$app/stores";
+  import { trpc } from "$lib/trpc/client";
   import { breadcrumbs } from "$lib/breadcrumbs";
   import { Heading, P, Button, Span, Badge, Indicator, Tabs, TabItem } from "flowbite-svelte";
   import { EditSolid, UsersGroupSolid } from "flowbite-svelte-icons";
+  import { onMount } from "svelte";
 
   breadcrumbs.set([
     { label: "Home", path: "/" },
     { label: "Sessions", path: "/sessions" }
   ]);
+
+  onMount(async () => {
+    const greeting = await trpc($page).greeting.query();
+    console.log(greeting);
+  });
 </script>
 
 <div class="pb-4">
