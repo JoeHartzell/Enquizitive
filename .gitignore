@@ -42,3 +42,7 @@ lerna-debug.log*
 
 # Turbo
 .turbo/*
+
+# env
+.env
+.envrc

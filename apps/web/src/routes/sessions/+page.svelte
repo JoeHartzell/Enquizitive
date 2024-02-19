@@ -1,21 +1,53 @@
 <script lang="ts">
   import { page } from "$app/stores";
   import { trpc } from "$lib/trpc/client";
+  import { db } from "$lib/localstorage/db";
   import { breadcrumbs } from "$lib/breadcrumbs";
-  import { Heading, P, Button, Span, Badge, Indicator, Tabs, TabItem } from "flowbite-svelte";
+  import SuperDebug, { superForm } from "sveltekit-superforms";
+  import { Heading, P, Button, Span, Badge, Modal, Input, Label, Helper } from "flowbite-svelte";
   import { EditSolid, UsersGroupSolid } from "flowbite-svelte-icons";
   import { onMount } from "svelte";
+  import type { PageData } from "./$types";
 
-  breadcrumbs.set([
-    { label: "Home", path: "/" },
-    { label: "Sessions", path: "/sessions" }
-  ]);
+  export let data: PageData;
+
+  let openCreateQuizModal = false;
+
+  breadcrumbs.set([{ label: "Sessions", path: "/sessions" }]);
+
+  const { form, enhance, errors } = superForm(data.createQuizForm, {
+    onUpdated({ form }) {
+      if (form.valid) {
+        db.sessions.add({
+          name: form.data.name,
+          description: form.data.description
+          // globalId: form.data.id,
+        });
+      }
+    }
+  });
 
   onMount(async () => {
-    const greeting = await trpc($page).greeting.query();
-    console.log(greeting);
+    const blah = await trpc($page).sessions.getSessions.query();
+    console.log(blah);
   });
 </script>
+
+<Modal bind:open={openCreateQuizModal}>
+  <form method="POST" action="?/createQuiz" class="flex flex-col space-y-6" use:enhance>
+    <Heading tag="h3">Create a Quiz</Heading>
+    <Label class="space-y-2">
+      <Span>Name</Span>
+      <Input name="name" color={$errors.name ? "red" : undefined} type="text" bind:value={$form.name} />
+    </Label>
+    <Label class="space-y-2">
+      <Span>Description</Span>
+      <Input name="description" type="text" color={$errors.description ? "red" : undefined} bind:value={$form.description} />
+    </Label>
+    <Button type="submit">Create</Button>
+    <SuperDebug data={$form} />
+  </form>
+</Modal>
 
 <div class="pb-4">
   <Heading tag="h1">Sessions</Heading>
@@ -23,7 +55,7 @@
 </div>
 
 <div class="mb-2 flex flex-row gap-2 rounded-lg bg-slate-100 p-4">
-  <Button><EditSolid /> Create a quiz</Button>
+  <Button on:click={() => (openCreateQuizModal = true)}><EditSolid /> Create a quiz</Button>
   <Button><UsersGroupSolid /> Join a quiz</Button>
 </div>
 
