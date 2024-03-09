@@ -46,3 +46,8 @@ lerna-debug.log*
 # env
 .env
 .envrc
+
+# docker 
+docker/*
+!init-scripts/
+!docker/docker-compose.yml
