@@ -18,9 +18,7 @@ export const actions = {
 
     if (!createQuizForm.valid) return fail(400, { createQuizForm });
 
-    t.createCallerFactory(router)(
-      await createContext(event)
-    ).sessions.createQuiz(createQuizForm.data);
+    t.createCallerFactory(router)(await createContext(event)).quizzes.create(createQuizForm.data);
 
     return message(createQuizForm, "Quiz form submitted");
   }

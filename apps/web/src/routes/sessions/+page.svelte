@@ -28,7 +28,7 @@
   });
 
   onMount(async () => {
-    const blah = await trpc($page).sessions.getSessions.query();
+    const blah = await trpc($page).quizzes.getAll.query();
     console.log(blah);
   });
 </script>

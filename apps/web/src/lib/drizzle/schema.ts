@@ -1,1 +1,1 @@
-export { session, typeEnum } from "../sessions/model";
+export { quiz } from "../quizzes/model";
