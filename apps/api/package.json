@@ -1,6 +1,6 @@
 {
     "name": "api",
     "scripts": {
-        "dev": "dotnet watch run"
+        "dev": "dotnet watch run --project src/api.csproj"
     }
 }
