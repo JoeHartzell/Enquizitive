@@ -19,19 +19,21 @@ public static class RouteExtensions
             {
                 var @event = new QuizCreated(Guid.NewGuid(), "Quiz Name", "Quiz Description");
                 var @event2 = new QuizQuestionCreated();
-                return new List<DomainEvent<IDomainEvent>>()
+                return new List<EventStore<IDomainEvent>>()
                 {
                     new()
                     {
+                        SortKey = $"Event#1/{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}",
                         Key = $"Quiz#{@event.Id}",
-                        Payload = @event,
-                        Type = nameof(@event)
+                        Data = @event,
+                        Type = nameof(QuizCreated)
                     },
                     new()
                     {
+                        SortKey = $"Event#2/{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}",
                         Key = $"Quiz#{@event.Id}",
-                        Payload = @event2,
-                        Type = nameof(@event2)
+                        Data = @event2,
+                        Type = nameof(QuizQuestionCreated)
                     }
                 };
             })
