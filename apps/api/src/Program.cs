@@ -1,3 +1,4 @@
+using Amazon.DynamoDBv2;
 using Enquizitive.Features.Quiz;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,6 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+var configuration = builder.Configuration;
+var defaultAwsOptions = configuration.GetAWSOptions();
+
+builder.Services.AddDefaultAWSOptions(defaultAwsOptions);
+builder.Services.AddAWSService<IAmazonDynamoDB>();
 
 var app = builder.Build();
 
