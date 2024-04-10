@@ -1,9 +1,12 @@
 using Enquizitive.Common;
+using Enquizitive.Infrastructure;
 
 namespace Enquizitive.Features.Quiz.DomainEvents;
 
 public record QuizCreated(
     Guid Id,
+    int Version,
+    long Timestamp,
     string Name,
     string? Description
-    ) : IDomainEvent { }
+    ) : Event(Id, Version, Timestamp), IQuizDomainEvent { }

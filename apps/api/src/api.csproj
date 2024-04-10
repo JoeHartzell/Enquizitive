@@ -14,6 +14,8 @@
     <PackageReference Include="AWSSDK.SSO" Version="3.7.300.66" />
     <PackageReference Include="AWSSDK.SSOOIDC" Version="3.7.301.61" />
     <PackageReference Include="EntityFrameworkCore.NamingConventions" Version="8.0.0" />
+    <PackageReference Include="FluentValidation" Version="11.9.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -25,8 +27,6 @@
 
   <ItemGroup>
     <Folder Include="Features\Quiz\Commands\" />
-    <Folder Include="Features\Quiz\DTOs\" />
-    <Folder Include="Features\Quiz\Validators\" />
   </ItemGroup>
 
 </Project>

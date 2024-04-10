@@ -3,7 +3,10 @@ using Amazon.DynamoDBv2.DataModel;
 using Amazon.DynamoDBv2.DocumentModel;
 using Enquizitive.Common;
 using Enquizitive.Features.Quiz.DomainEvents;
+using Enquizitive.Features.Quiz.DTOs;
+using Enquizitive.Features.Quiz.Validators;
 using Enquizitive.Infrastructure;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Enquizitive.Features.Quiz;
@@ -19,53 +22,77 @@ public static class RouteExtensions
             .WithOpenApi()
             .WithTags("quiz");
 
-        group.MapPost("/batch-get", async ([FromServices] IAmazonDynamoDB ddb) =>
+        group.MapPost("/create", async (
+            [FromBody] CreateQuizRequest request,
+            [FromServices] IValidator<CreateQuizRequest> validator,
+            [FromServices] IDynamoDBContext context
+            ) =>
+        {
+            var result = await validator.ValidateAsync(request);
+            if (!result.IsValid)
             {
-                var context = new DynamoDBContext(ddb);
+                return Results.ValidationProblem(result.ToDictionary());
+            }
+
+            var quiz = Quiz.Create(request.Name, request.Description);
+
+            var snapshot = new QuizSnapshot(
+                quiz.Id,
+                quiz.Version,
+                DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                quiz
+            );
+            var domainEvents = quiz.Events
+                .Select(x => new EventStore<IQuizEventStoreRecord>()
+                {
+                    Data = x,
+                    Key = $"Quiz#{quiz.Id}",
+                    SortKey = $"Event#{x.Version}",
+                    Type = x.GetType().Name,
+                    Timestamp = x.Timestamp,
+                    Version = x.Version,
+                });
+
+
+            var batchWrite = context.CreateBatchWrite<EventStore<IQuizEventStoreRecord>>(new DynamoDBOperationConfig()
+            {
+            });
+            batchWrite.AddPutItems(domainEvents);
+            batchWrite.AddPutItem(
+                new EventStore<IQuizEventStoreRecord>()
+                {
+                    Data = snapshot,
+                    Key = $"Quiz#{quiz.Id}",
+                    SortKey = $"Snapshot#{quiz.Version}",
+                    Type = "Snapshot",
+                    Timestamp = snapshot.Timestamp,
+                    Version = snapshot.Version
+                });
+            await batchWrite.ExecuteAsync();
+
+            return Results.Created($"/quiz/{quiz.Id}", quiz);
+        });
+
+        group.MapPost("/batch-get", async (
+                [FromBody] BatchGetRequest request,
+                [FromServices] IDynamoDBContext ddb) =>
+            {
                 var filter = new QueryOperationConfig()
                 {
                     KeyExpression = new()
                     {
-                        ExpressionStatement = "pk = :pk and begins_with(sk, :sk)",
-                        ExpressionAttributeValues = new Dictionary<string, DynamoDBEntry>
+                        ExpressionStatement = "pk = :pk",
+                        ExpressionAttributeValues = new()
                         {
-                            { ":pk", new Primitive("Quiz#123") },
-                            { ":sk", new Primitive("Event#") }
+                            [":pk"] = $"Quiz#{request.Id}",
                         }
-                    },
+                    }
                 };
-                var query = await context.FromQueryAsync<EventStore<IDomainEvent>>(filter).GetRemainingAsync();
-                return query;
-                // var item = new EventStore<IDomainEvent>
-                // {
-                //     Key = "Quiz#123",
-                //     SortKey = $"Event#1/{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}",
-                //     Data = new QuizCreated(Guid.NewGuid(), "Quiz Name", "Quiz Description"),
-                //     Type = nameof(QuizCreated)
-                // };
-                // await context.SaveAsync(item);
-                //
-                // return item;
+                var query = ddb.FromQueryAsync<EventStore<IQuizEventStoreRecord>>(filter);
+                var result = await query.GetRemainingAsync();
+                var events = result.Select(x => x.Data).ToList();
 
-                // var @event = new QuizCreated(Guid.NewGuid(), "Quiz Name", "Quiz Description");
-                // var @event2 = new QuizQuestionCreated();
-                // return new List<EventStore<IDomainEvent>>()
-                // {
-                //     new()
-                //     {
-                //         SortKey = $"Event#1/{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}",
-                //         Key = $"Quiz#{@event.Id}",
-                //         Data = @event,
-                //         Type = nameof(QuizCreated)
-                //     },
-                //     new()
-                //     {
-                //         SortKey = $"Event#2/{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}",
-                //         Key = $"Quiz#{@event.Id}",
-                //         Data = @event2,
-                //         Type = nameof(QuizQuestionCreated)
-                //     }
-                // };
+                return Quiz.Hydrate(events);
             })
             .WithName("BatchGetQuiz")
             .WithOpenApi()

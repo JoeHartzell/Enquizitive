@@ -3,7 +3,7 @@ using Enquizitive.Common;
 
 namespace Enquizitive.Features.Quiz.DomainEvents;
 
-public class QuizQuestionCreated : IDomainEvent
+public record QuizQuestionCreated(Guid Id, int Version, long Timestamp) : IQuizDomainEvent
 {
 
 }

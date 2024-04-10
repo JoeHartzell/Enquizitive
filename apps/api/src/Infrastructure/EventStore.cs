@@ -5,14 +5,14 @@ using Enquizitive.Common;
 namespace Enquizitive.Infrastructure;
 
 [DynamoDBTable("Enquizitive")]
-public class EventStore<TData> where TData : class
+public class EventStore<TData> where TData : IEventStoreRecord
 {
     /// <summary>
     /// The primary key of the record.
     /// <example>Quiz#123</example>
     /// </summary>
     [DynamoDBHashKey("pk")]
-    public required string Key { get; set; } 
+    public required string Key { get; set; }
 
     /// <summary>
     /// The sort key of the record.
@@ -23,20 +23,20 @@ public class EventStore<TData> where TData : class
 
     [DynamoDBProperty("timestamp")]
     public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-    
+
     [DynamoDBProperty("version")]
-    public int Version { get; set; } = 0;
+    public int? Version { get; set; } = 0;
 
     [DynamoDBProperty("type")]
     public required string Type { get; set; }
 
-    [DynamoDBProperty("payload")]
+    [DynamoDBProperty("data")]
     public string SerializedData
     {
         get => JsonSerializer.Serialize(Data);
         set => Data = JsonSerializer.Deserialize<TData>(value);
     }
-    
+
     [DynamoDBIgnore]
     public required TData Data { get; set; }
 }

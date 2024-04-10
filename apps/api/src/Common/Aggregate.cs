@@ -1,8 +1,8 @@
 namespace Enquizitive.Common;
 
-public abstract class Aggregate
+public abstract class Aggregate<TEvent> where TEvent : IDomainEvent
 {
-    private readonly List<IDomainEvent> _events = [];
+    private readonly List<TEvent> _events = [];
 
     /// <summary>
     /// A unique identifier for the aggregate.
@@ -17,7 +17,7 @@ public abstract class Aggregate
     /// <summary>
     /// List of domain events that have occurred on the aggregate.
     /// </summary>
-    public IReadOnlyList<IDomainEvent> Events => _events.AsReadOnly();
+    public IReadOnlyList<TEvent> Events => _events.AsReadOnly();
 
     /// <summary>
     /// Clears the list of domain events.
@@ -27,11 +27,11 @@ public abstract class Aggregate
         _events.Clear();
     }
 
-    protected void RaiseEvent(IDomainEvent @event)
+    protected void RaiseEvent(TEvent @event)
     {
         _events.Add(@event);
         ApplyEvent(@event);
     }
 
-    protected abstract void ApplyEvent(IDomainEvent @event);
+    protected abstract void ApplyEvent(TEvent @event);
 }

@@ -1,5 +1,8 @@
+using System.Reflection;
 using Amazon.DynamoDBv2;
+using Amazon.DynamoDBv2.DataModel;
 using Enquizitive.Features.Quiz;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,12 +11,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var configuration = builder.Configuration;
-var defaultAwsOptions = configuration.GetAWSOptions();
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
-builder.Services.AddDefaultAWSOptions(defaultAwsOptions);
+var awsOptions = builder.Configuration.GetAWSOptions();
+builder.Services.AddDefaultAWSOptions(awsOptions);
 builder.Services.AddAWSService<IAmazonDynamoDB>();
-
+builder.Services.AddTransient<IDynamoDBContext, DynamoDBContext>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
