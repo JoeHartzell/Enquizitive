@@ -1,12 +1,8 @@
-using Amazon.DynamoDBv2;
-using Amazon.DynamoDBv2.DataModel;
-using Amazon.DynamoDBv2.DocumentModel;
-using Enquizitive.Common;
-using Enquizitive.Features.Quiz.DomainEvents;
+using Enquizitive.Features.Quiz.Commands;
 using Enquizitive.Features.Quiz.DTOs;
-using Enquizitive.Features.Quiz.Validators;
 using Enquizitive.Infrastructure;
 using FluentValidation;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Enquizitive.Features.Quiz;
@@ -15,89 +11,60 @@ public static class RouteExtensions
 {
     public static WebApplication UseQuizRoutes(this WebApplication app)
     {
-        var group = app.MapGroup("/quiz");
-
-        group.MapPost("/get", () => "Hello, World!")
-            .WithName("GetQuiz")
+        var group = app.MapGroup("/quiz")
             .WithOpenApi()
-            .WithTags("quiz");
+            .WithTags("Quiz");
 
         group.MapPost("/create", async (
-            [FromBody] CreateQuizRequest request,
-            [FromServices] IValidator<CreateQuizRequest> validator,
-            [FromServices] IDynamoDBContext context
+                [FromBody] CreateQuizRequest request,
+                [FromServices] IMediator mediator,
+                [FromServices] IValidator<CreateQuizRequest> validator,
+                [FromServices] EventStore eventStore
             ) =>
-        {
-            var result = await validator.ValidateAsync(request);
-            if (!result.IsValid)
             {
-                return Results.ValidationProblem(result.ToDictionary());
-            }
-
-            var quiz = Quiz.Create(request.Name, request.Description);
-
-            var snapshot = new QuizSnapshot(
-                quiz.Id,
-                quiz.Version,
-                DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                quiz
-            );
-            var domainEvents = quiz.Events
-                .Select(x => new EventStore<IQuizEventStoreRecord>()
+                var result = await validator.ValidateAsync(request);
+                if (!result.IsValid)
                 {
-                    Data = x,
-                    Key = $"Quiz#{quiz.Id}",
-                    SortKey = $"Event#{x.Version}",
-                    Type = x.GetType().Name,
-                    Timestamp = x.Timestamp,
-                    Version = x.Version,
-                });
+                    return Results.ValidationProblem(result.ToDictionary());
+                }
+                
+                var command = new CreateQuizCommand(request.Name, request.Description);
+                var id = await mediator.Send(command);
 
-
-            var batchWrite = context.CreateBatchWrite<EventStore<IQuizEventStoreRecord>>(new DynamoDBOperationConfig()
-            {
-            });
-            batchWrite.AddPutItems(domainEvents);
-            batchWrite.AddPutItem(
-                new EventStore<IQuizEventStoreRecord>()
-                {
-                    Data = snapshot,
-                    Key = $"Quiz#{quiz.Id}",
-                    SortKey = $"Snapshot#{quiz.Version}",
-                    Type = "Snapshot",
-                    Timestamp = snapshot.Timestamp,
-                    Version = snapshot.Version
-                });
-            await batchWrite.ExecuteAsync();
-
-            return Results.Created($"/quiz/{quiz.Id}", quiz);
-        });
-
-        group.MapPost("/batch-get", async (
-                [FromBody] BatchGetRequest request,
-                [FromServices] IDynamoDBContext ddb) =>
-            {
-                var filter = new QueryOperationConfig()
-                {
-                    KeyExpression = new()
-                    {
-                        ExpressionStatement = "pk = :pk",
-                        ExpressionAttributeValues = new()
-                        {
-                            [":pk"] = $"Quiz#{request.Id}",
-                        }
-                    }
-                };
-                var query = ddb.FromQueryAsync<EventStore<IQuizEventStoreRecord>>(filter);
-                var result = await query.GetRemainingAsync();
-                var events = result.Select(x => x.Data).ToList();
-
-                return Quiz.Hydrate(events);
+                return Results.Ok(id);
             })
-            .WithName("BatchGetQuiz")
-            .WithOpenApi()
-            .WithTags("quiz");
+            .WithName("CreateQuiz");
 
+        group.MapPost("/get", async (
+                [FromBody] BatchGetRequest request,
+                [FromServices] EventStore store) =>
+            {
+                var quiz = await store.GetQuizById(request.Id);
+                return Results.Ok(quiz); 
+            })
+            .WithName("GetQuiz");
+
+        group.MapPost("/update-name", async (
+                [FromBody] UpdateQuizNameRequest request,
+                [FromServices] IMediator mediator,
+                [FromServices] IValidator<UpdateQuizNameRequest> validator
+            ) =>
+            {
+                var result = await validator.ValidateAsync(request);
+                if (!result.IsValid)
+                {
+                    return Results.ValidationProblem(result.ToDictionary());
+                }
+
+                var command = new UpdateQuizNameCommand(
+                    Id: request.Id,
+                    Name: request.Name);
+                await mediator.Send(command);
+
+                return Results.Ok();
+            })
+            .WithName("UpdateQuizName");
+        
         return app;
     }
 }

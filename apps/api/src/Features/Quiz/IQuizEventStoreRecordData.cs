@@ -5,9 +5,10 @@ using Enquizitive.Infrastructure;
 namespace Enquizitive.Features.Quiz;
 
 [JsonDerivedType(typeof(QuizCreated), nameof(QuizCreated))]
+[JsonDerivedType(typeof(QuizNameUpdated), nameof(QuizNameUpdated))]
 [JsonDerivedType(typeof(QuizQuestionCreated), nameof(QuizQuestionCreated))]
 [JsonDerivedType(typeof(QuizSnapshot), nameof(QuizSnapshot))]
-public interface IQuizEventStoreRecord : IEventStoreRecord
+public interface IQuizEventStoreRecordData : IEventStoreRecordData
 {
 
 }

@@ -1,6 +1,6 @@
 namespace Enquizitive.Infrastructure;
 
-public interface IEventStoreRecord
+public interface IEventStoreRecordData
 {
    /// <summary>
    /// Aggregate identifier.

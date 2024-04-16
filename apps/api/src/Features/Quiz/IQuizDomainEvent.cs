@@ -2,6 +2,6 @@ using Enquizitive.Common;
 
 namespace Enquizitive.Features.Quiz;
 
-public interface IQuizDomainEvent : IQuizEventStoreRecord, IDomainEvent
+public interface IQuizDomainEvent : IQuizEventStoreRecordData, IDomainEvent
 {
 }

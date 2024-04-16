@@ -10,11 +10,6 @@ public abstract class Aggregate<TEvent> where TEvent : IDomainEvent
     public Guid Id { get; protected set; } = Guid.NewGuid();
 
     /// <summary>
-    /// The type of the aggregate.
-    /// </summary>
-    public abstract string Type { get; }
-
-    /// <summary>
     /// List of domain events that have occurred on the aggregate.
     /// </summary>
     public IReadOnlyList<TEvent> Events => _events.AsReadOnly();

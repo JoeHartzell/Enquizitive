@@ -16,6 +16,7 @@
     <PackageReference Include="EntityFrameworkCore.NamingConventions" Version="8.0.0" />
     <PackageReference Include="FluentValidation" Version="11.9.0" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.9.0" />
+    <PackageReference Include="MediatR" Version="12.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -26,7 +27,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Features\Quiz\Commands\" />
+    <Folder Include="Features\Administration\" />
+    <Folder Include="Features\Question\Commands\" />
+    <Folder Include="Features\Question\DomainEvents\" />
+    <Folder Include="Features\Question\DTOs\" />
+    <Folder Include="Features\Standard\Commands\" />
+    <Folder Include="Features\Standard\DomainEvents\" />
+    <Folder Include="Features\Standard\DTOs\" />
   </ItemGroup>
 
 </Project>

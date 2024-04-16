@@ -1,10 +1,9 @@
-using System.Text.Json.Serialization;
-using Enquizitive.Features.Quiz.DomainEvents;
 using Enquizitive.Infrastructure;
+using MediatR;
 
 namespace Enquizitive.Common;
 
-public interface IDomainEvent : IEventStoreRecord
+public interface IDomainEvent : IEventStoreRecordData, INotification
 {
 
 }

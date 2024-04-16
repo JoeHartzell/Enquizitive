@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Enquizitive.Common;
 using Enquizitive.Features.Quiz.DomainEvents;
 
@@ -6,9 +5,6 @@ namespace Enquizitive.Features.Quiz;
 
 public sealed class Quiz : Aggregate<IQuizDomainEvent>
 {
-    /// <inheritdoc cref="Aggregate"/>
-    public override string Type => "Quiz";
-
     /// <summary>
     /// The name of the quiz.
     /// </summary>
@@ -43,7 +39,7 @@ public sealed class Quiz : Aggregate<IQuizDomainEvent>
         Name = name;
     }
 
-    public static Quiz Hydrate(List<IQuizEventStoreRecord> events)
+    public static Quiz Hydrate(List<IQuizEventStoreRecordData> events)
     {
         var quiz = new Quiz(string.Empty);
         foreach (var e in events)
@@ -68,32 +64,51 @@ public sealed class Quiz : Aggregate<IQuizDomainEvent>
         {
             Description = description
         };
-        quiz.RaiseEvent(new QuizCreated(quiz.Id, 1, DateTimeOffset.UtcNow.ToUnixTimeSeconds() ,quiz.Name, quiz.Description));
+        
+        quiz.RaiseEvent(new QuizCreated(quiz.Id, 1, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() ,quiz.Name, quiz.Description));
+        
         return quiz;
     }
 
+    public void UpdateName(string name)
+    {
+        Version++;
+        UpdatedAt = DateTimeOffset.UtcNow;
+        RaiseEvent(new QuizNameUpdated(Id, Version, UpdatedAt.ToUnixTimeMilliseconds(), name));
+    }
+    
     protected override void ApplyEvent(IQuizDomainEvent @event)
     {
-        _ = @event switch
+        switch (@event)
         {
-            QuizCreated e => When(e),
-            _ => throw new InvalidOperationException($"Unsupported event {@event.GetType().Name}")
-        };
+            case QuizCreated e:
+                When(e);
+                break;
+            case QuizNameUpdated e:
+                When(e);
+                break;
+        }
     }
 
-    private Quiz When(QuizCreated @event)
+    private void When(QuizNameUpdated @event)
+    {
+        Name = @event.Name;
+        Version = @event.Version;
+        UpdatedAt = DateTimeOffset.FromUnixTimeMilliseconds(@event.Timestamp);
+    }
+    
+    private void When(QuizCreated @event)
     {
         Id = @event.Id;
         Name = @event.Name;
         Description = @event.Description;
         Version = @event.Version;
-        var timestamp = DateTimeOffset.FromUnixTimeSeconds(@event.Timestamp);
+        var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(@event.Timestamp);
         CreatedAt = timestamp;
         UpdatedAt = timestamp;
-        return this;
     }
 
-    private Quiz When(QuizSnapshot snapshot)
+    private void When(QuizSnapshot snapshot)
     {
         Id = snapshot.Id;
         Name = snapshot.Data.Name;
@@ -101,6 +116,5 @@ public sealed class Quiz : Aggregate<IQuizDomainEvent>
         Version = snapshot.Version;
         CreatedAt = snapshot.Data.CreatedAt;
         UpdatedAt = snapshot.Data.UpdatedAt;
-        return this;
     }
 }
