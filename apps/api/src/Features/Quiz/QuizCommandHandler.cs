@@ -4,8 +4,8 @@ using Enquizitive.Infrastructure;
 
 namespace Enquizitive.Features.Quiz;
 
-public class QuizCommandHandler(EventStore eventStore) : 
-    ICommandHandler<CreateQuizCommand, Guid>, 
+public class QuizCommandHandler(EventStore eventStore) :
+    ICommandHandler<CreateQuizCommand, Guid>,
     ICommandHandler<UpdateQuizNameCommand>
 {
     public async Task<Guid> Handle(CreateQuizCommand command, CancellationToken cancellationToken)
@@ -16,7 +16,6 @@ public class QuizCommandHandler(EventStore eventStore) :
         await eventStore.SaveQuiz(quiz);
         return quiz.Id;
     }
-
 
     public async Task Handle(UpdateQuizNameCommand request, CancellationToken cancellationToken)
     {

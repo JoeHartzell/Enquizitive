@@ -1,6 +1,5 @@
 namespace Enquizitive.Features.Quiz.DTOs;
 
-public sealed class BatchGetRequest
+public sealed record BatchGetRequest(Guid Id)
 {
-   public Guid Id { get; set; }
 }

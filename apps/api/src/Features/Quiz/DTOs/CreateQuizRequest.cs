@@ -2,10 +2,8 @@ using FluentValidation;
 
 namespace Enquizitive.Features.Quiz.DTOs;
 
-public sealed class CreateQuizRequest
+public sealed record CreateQuizRequest(string Name, string? Description = null)
 {
-    public required string Name { get; set; }
-    public string? Description { get; set; }
 }
 
 public class CreateQuizRequestValidator : AbstractValidator<CreateQuizRequest>

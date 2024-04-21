@@ -2,10 +2,8 @@ using FluentValidation;
 
 namespace Enquizitive.Features.Quiz.DTOs;
 
-public sealed class UpdateQuizNameRequest
+public sealed record UpdateQuizNameRequest(Guid Id, string Name)
 {
-    public Guid Id { get; set; }
-    public required string Name { get; set; }
 }
 
 public class UpdateQuizNameValidator : AbstractValidator<UpdateQuizNameRequest>
