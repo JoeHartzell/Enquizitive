@@ -1,5 +1,6 @@
 using Enquizitive.Common;
 using Enquizitive.Features.Quiz.DomainEvents;
+using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 
 namespace Enquizitive.Features.Quiz;
 
@@ -25,24 +26,24 @@ public sealed class Quiz : Aggregate<IDomainEvent>
     /// </summary>
     public DateTimeOffset UpdatedAt { get; private set; } = DateTimeOffset.UtcNow;
 
-    /// <summary>
-    /// The version of the quiz.
-    /// </summary>
-    public int Version { get; private set; } = 0;
-
     public Quiz()
     {
     }
 
-    private Quiz(string name)
-    {
-        Name = name;
-    }
 
-    public static Quiz Hydrate(List<IDomainEvent> events)
+    public static Quiz Hydrate(QuizSnapshot snapshot, List<IDomainEvent> events)
     {
-        var quiz = new Quiz(string.Empty);
-        foreach (var e in events)
+        var ordered = events.OrderBy(x => x.Version);
+
+        var quiz = new Quiz()
+        {
+            Name = snapshot.Name,
+            Description = snapshot.Description,
+            CreatedAt = snapshot.CreatedAt,
+            UpdatedAt = DateTimeOffset.FromUnixTimeMilliseconds(snapshot.Timestamp)
+        };
+
+        foreach (var e in ordered)
         {
             quiz.ApplyEvent(e);
         }
@@ -50,11 +51,16 @@ public sealed class Quiz : Aggregate<IDomainEvent>
         return quiz;
     }
 
+    public static QuizSnapshot TakeSnapshot(Quiz quiz)
+    {
+        return new QuizSnapshot(quiz.Id, quiz.Version, quiz);
+    }
+
     public static Quiz Create(string name, string? description)
     {
         var quiz = new Quiz();
-        quiz.RaiseEvent(new QuizCreated(quiz.Id, quiz.Name, quiz.Description));
-        
+        quiz.RaiseEvent(new QuizCreated(quiz.Id, name, description));
+
         return quiz;
     }
 
@@ -62,7 +68,7 @@ public sealed class Quiz : Aggregate<IDomainEvent>
     {
         RaiseEvent(new QuizNameUpdated(Id, NextVersion, name));
     }
-    
+
     protected override void ApplyEvent(IDomainEvent @event)
     {
         switch (@event)
@@ -74,7 +80,7 @@ public sealed class Quiz : Aggregate<IDomainEvent>
                 When(e);
                 break;
         }
-        
+
         // Update the version of the aggregate.
         Version = @event.Version;
     }
@@ -84,7 +90,7 @@ public sealed class Quiz : Aggregate<IDomainEvent>
         Name = @event.Name;
         UpdatedAt = DateTimeOffset.FromUnixTimeMilliseconds(@event.Timestamp);
     }
-    
+
     private void When(QuizCreated @event)
     {
         Id = @event.Id;
@@ -98,10 +104,10 @@ public sealed class Quiz : Aggregate<IDomainEvent>
     private void When(QuizSnapshot snapshot)
     {
         Id = snapshot.Id;
-        Name = snapshot.Data.Name;
-        Description = snapshot.Data.Description;
+        Name = snapshot.State.Name;
+        Description = snapshot.State.Description;
         Version = snapshot.Version;
-        CreatedAt = snapshot.Data.CreatedAt;
-        UpdatedAt = snapshot.Data.UpdatedAt;
+        CreatedAt = snapshot.State.CreatedAt;
+        UpdatedAt = snapshot.State.UpdatedAt;
     }
 }

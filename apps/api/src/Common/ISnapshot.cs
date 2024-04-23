@@ -1,6 +1,5 @@
 namespace Enquizitive.Common;
 
-public interface ISnapshot
+public interface ISnapshot : IEventStoreRecordData
 {
-    
 }

@@ -7,10 +7,12 @@ namespace Enquizitive.Infrastructure;
 /// </summary>
 /// <param name="Id"></param>
 /// <param name="Version"></param>
-/// <param name="Timestamp"></param>
-/// <param name="Data"></param>
+/// <param name="State"></param>
 /// <typeparam name="T"></typeparam>
-public abstract record Snapshot<T>(Guid Id, int Version, long Timestamp, T Data) : IEventStoreRecordData 
+public record Snapshot(Guid Id, int Version) : ISnapshot
 {
-
+    /// <summary>
+    /// Timestamp when the snapshot was taken.
+    /// </summary>
+    public long Timestamp { get; init; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 }

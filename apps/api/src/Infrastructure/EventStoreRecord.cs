@@ -7,8 +7,8 @@ namespace Enquizitive.Infrastructure;
 [DynamoDBTable("Enquizitive")]
 public class EventStoreRecord<TData> where TData : IEventStoreRecordData
 {
-    public const string VersionIndex = "VersionIndex";
-    
+    public const string TimestampIndex = "timestamp-index";
+
     /// <summary>
     /// The primary key of the record.
     /// <example>Quiz#123</example>
@@ -24,10 +24,10 @@ public class EventStoreRecord<TData> where TData : IEventStoreRecordData
     public required string SortKey { get; set; }
 
     [DynamoDBProperty("timestamp")]
+    [DynamoDBLocalSecondaryIndexRangeKey(TimestampIndex)]
     public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     [DynamoDBProperty("version")]
-    [DynamoDBLocalSecondaryIndexRangeKey(VersionIndex)]
     public int Version { get; set; } = 0;
 
     [DynamoDBProperty("type")]

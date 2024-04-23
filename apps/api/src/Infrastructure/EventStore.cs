@@ -1,5 +1,6 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Amazon.DynamoDBv2.DocumentModel;
 using Amazon.DynamoDBv2.Model;
 using Enquizitive.Common;
 using MediatR;
@@ -8,31 +9,52 @@ namespace Enquizitive.Infrastructure;
 
 public class EventStore(IDynamoDBContext context, IAmazonDynamoDB client, IMediator mediator)
 {
-    public async Task<TAggregate> GetById<TAggregate, TEvent, TRecordData>(Guid id, Func<List<IDomainEvent>, TAggregate> hydrate)
+    public async Task<TAggregate> GetById<TAggregate, TEvent, TSnapshot>(Guid id, Func<TSnapshot, List<TEvent>, TAggregate> hydrate)
         where TAggregate : Aggregate<TEvent>
-        where TEvent : IDomainEvent, TRecordData
-        where TRecordData : IEventStoreRecordData
-    { 
+        where TEvent : IDomainEvent
+        where TSnapshot : ISnapshot
+    {
         var hashKey = $"{typeof(TAggregate).Name}#{id}";
-        var results = await context.QueryAsync<EventStoreRecord<TRecordData>>(hashKey)
+        var config = new QueryOperationConfig()
+        {
+            IndexName = EventStoreRecord<IEventStoreRecordData>.TimestampIndex,
+            Limit = 50,
+            KeyExpression = new Expression()
+            {
+                ExpressionStatement = "pk = :pk",
+                ExpressionAttributeValues = new Dictionary<string, DynamoDBEntry>
+                {
+                    { ":pk", new Primitive(hashKey) }
+                }
+            },
+            // descending order
+            BackwardSearch = true
+        };
+
+        var results = await context.FromQueryAsync<EventStoreRecord<IEventStoreRecordData>>(config)
             .GetRemainingAsync();
 
         var events = results
             .Select(x => x.Data)
-            .OfType<IDomainEvent>()
+            .OfType<TEvent>()
             .ToList();
-        
-        return hydrate(events);
+
+        var snapshot = results
+            .Select(x => x.Data)
+            .OfType<TSnapshot>()
+            .First();
+
+        return hydrate(snapshot, events);
     }
-    
-    public async Task SaveAggregate<TAggregate, TEvent, TRecordData>(TAggregate aggregate) 
+
+    public async Task SaveAggregate<TAggregate, TEvent, TSnapshot>(TAggregate aggregate, Func<TAggregate, TSnapshot> takeSnapshot)
         where TAggregate : Aggregate<TEvent>
-        where TEvent : IDomainEvent, TRecordData 
-        where TRecordData : IEventStoreRecordData
+        where TEvent : IDomainEvent
+        where TSnapshot : ISnapshot
     {
         var domainEvents = aggregate.Events;
         var domainEventRecords = domainEvents
-            .Select(x => new EventStoreRecord<TRecordData>()
+            .Select(x => new EventStoreRecord<IEventStoreRecordData>()
             {
                 Data = x,
                 Key = $"{typeof(TAggregate).Name}#{aggregate.Id}",
@@ -41,10 +63,10 @@ public class EventStore(IDynamoDBContext context, IAmazonDynamoDB client, IMedia
                 Timestamp = x.Timestamp,
                 Version = x.Version,
             });
-        
+
         // Could use a transaction here to ensure that all records are saved or none are saved.
         // The reason we don't is the "double" write capacity units required for transactions.
-        
+
         foreach (var record in domainEventRecords)
         {
             // We have to use the low-level client here because the high-level
@@ -59,11 +81,36 @@ public class EventStore(IDynamoDBContext context, IAmazonDynamoDB client, IMedia
                 // For tables that define a composite primary key, this condition applies to the primary key as a whole.
                 ConditionExpression = "attribute_not_exists(sk)"
             };
-            
+
             await client.PutItemAsync(request);
             await mediator.Publish(record.Data);
+
+            // Take a snapshot every 50 events.
+            // We also take a snapshot on the first event.
+            if (record.Version % 50 == 0 || record.Version == 1)
+            {
+                var snapshot = takeSnapshot(aggregate);
+                var snapshotRecord = new EventStoreRecord<IEventStoreRecordData>()
+                {
+                    Data = snapshot,
+                    Key = $"{typeof(TAggregate).Name}#{aggregate.Id}",
+                    SortKey = $"Snapshot#{snapshot.Version}",
+                    Type = "Snapshot",
+                    Timestamp = snapshot.Timestamp,
+                    Version = snapshot.Version
+                };
+
+                var snapshotRequest = new PutItemRequest
+                {
+                    TableName = "Enquizitive",
+                    Item = context.ToDocument(snapshotRecord).ToAttributeMap(),
+                    ConditionExpression = "attribute_not_exists(sk)"
+                };
+
+                await client.PutItemAsync(snapshotRequest);
+            }
         }
-        
+
         aggregate.ClearEvents();
     }
 }
