@@ -1,3 +1,5 @@
+using Enquizitive.Common;
+
 namespace Enquizitive.Infrastructure;
 
 /// <summary>
@@ -8,7 +10,7 @@ namespace Enquizitive.Infrastructure;
 /// <param name="Timestamp"></param>
 /// <param name="Data"></param>
 /// <typeparam name="T"></typeparam>
-public abstract record Snapshot<T>(Guid Id, int Version, long Timestamp, T Data) : IEventStoreRecordData
+public abstract record Snapshot<T>(Guid Id, int Version, long Timestamp, T Data) : IEventStoreRecordData 
 {
 
 }

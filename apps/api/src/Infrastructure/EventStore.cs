@@ -8,7 +8,7 @@ namespace Enquizitive.Infrastructure;
 
 public class EventStore(IDynamoDBContext context, IAmazonDynamoDB client, IMediator mediator)
 {
-    public async Task<TAggregate> GetById<TAggregate, TEvent, TRecordData>(Guid id, Func<List<TRecordData>, TAggregate> hydrate)
+    public async Task<TAggregate> GetById<TAggregate, TEvent, TRecordData>(Guid id, Func<List<IDomainEvent>, TAggregate> hydrate)
         where TAggregate : Aggregate<TEvent>
         where TEvent : IDomainEvent, TRecordData
         where TRecordData : IEventStoreRecordData
@@ -17,8 +17,12 @@ public class EventStore(IDynamoDBContext context, IAmazonDynamoDB client, IMedia
         var results = await context.QueryAsync<EventStoreRecord<TRecordData>>(hashKey)
             .GetRemainingAsync();
 
-        var recordData = results.Select(x => x.Data).ToList();
-        return hydrate(recordData);
+        var events = results
+            .Select(x => x.Data)
+            .OfType<IDomainEvent>()
+            .ToList();
+        
+        return hydrate(events);
     }
     
     public async Task SaveAggregate<TAggregate, TEvent, TRecordData>(TAggregate aggregate) 

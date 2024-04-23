@@ -4,7 +4,6 @@ namespace Enquizitive.Features.Quiz.DomainEvents;
 
 public record QuizCreated(
     Guid Id,
-    int Version,
-    long Timestamp,
     string Name,
-    string? Description) : Event(Id, Version, Timestamp), IQuizDomainEvent { }
+    string? Description
+    ) : Event(Id, 1) { }

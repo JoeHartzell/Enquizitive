@@ -28,8 +28,6 @@
 
   <ItemGroup>
     <Folder Include="Features\Administration\" />
-    <Folder Include="Features\Question\Commands\" />
-    <Folder Include="Features\Question\DTOs\" />
     <Folder Include="Features\Standard\Commands\" />
     <Folder Include="Features\Standard\DomainEvents\" />
     <Folder Include="Features\Standard\DTOs\" />

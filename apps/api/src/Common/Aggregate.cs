@@ -8,6 +8,11 @@ public abstract class Aggregate<TEvent> where TEvent : IDomainEvent
     /// A unique identifier for the aggregate.
     /// </summary>
     public Guid Id { get; protected set; } = Guid.NewGuid();
+    
+    /// <summary>
+    /// Version of the aggregate.
+    /// </summary>
+    public int Version { get; protected set; }
 
     /// <summary>
     /// List of domain events that have occurred on the aggregate.
@@ -22,6 +27,8 @@ public abstract class Aggregate<TEvent> where TEvent : IDomainEvent
         _events.Clear();
     }
 
+    protected int NextVersion => Version + 1;
+    
     protected void RaiseEvent(TEvent @event)
     {
         _events.Add(@event);

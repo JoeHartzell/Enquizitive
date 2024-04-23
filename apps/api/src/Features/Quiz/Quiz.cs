@@ -3,7 +3,7 @@ using Enquizitive.Features.Quiz.DomainEvents;
 
 namespace Enquizitive.Features.Quiz;
 
-public sealed class Quiz : Aggregate<IQuizDomainEvent>
+public sealed class Quiz : Aggregate<IDomainEvent>
 {
     /// <summary>
     /// The name of the quiz.
@@ -39,20 +39,12 @@ public sealed class Quiz : Aggregate<IQuizDomainEvent>
         Name = name;
     }
 
-    public static Quiz Hydrate(List<IQuizEventStoreRecordData> events)
+    public static Quiz Hydrate(List<IDomainEvent> events)
     {
         var quiz = new Quiz(string.Empty);
         foreach (var e in events)
         {
-            switch (e)
-            {
-                case IQuizDomainEvent domainEvent:
-                    quiz.ApplyEvent(domainEvent);
-                    break;
-                case QuizSnapshot snapshot:
-                    quiz.When(snapshot);
-                    break;
-            }
+            quiz.ApplyEvent(e);
         }
 
         return quiz;
@@ -60,24 +52,18 @@ public sealed class Quiz : Aggregate<IQuizDomainEvent>
 
     public static Quiz Create(string name, string? description)
     {
-        var quiz = new Quiz(name)
-        {
-            Description = description
-        };
-        
-        quiz.RaiseEvent(new QuizCreated(quiz.Id, 1, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() ,quiz.Name, quiz.Description));
+        var quiz = new Quiz();
+        quiz.RaiseEvent(new QuizCreated(quiz.Id, quiz.Name, quiz.Description));
         
         return quiz;
     }
 
     public void UpdateName(string name)
     {
-        Version++;
-        UpdatedAt = DateTimeOffset.UtcNow;
-        RaiseEvent(new QuizNameUpdated(Id, Version, UpdatedAt.ToUnixTimeMilliseconds(), name));
+        RaiseEvent(new QuizNameUpdated(Id, NextVersion, name));
     }
     
-    protected override void ApplyEvent(IQuizDomainEvent @event)
+    protected override void ApplyEvent(IDomainEvent @event)
     {
         switch (@event)
         {
@@ -88,12 +74,14 @@ public sealed class Quiz : Aggregate<IQuizDomainEvent>
                 When(e);
                 break;
         }
+        
+        // Update the version of the aggregate.
+        Version = @event.Version;
     }
 
     private void When(QuizNameUpdated @event)
     {
         Name = @event.Name;
-        Version = @event.Version;
         UpdatedAt = DateTimeOffset.FromUnixTimeMilliseconds(@event.Timestamp);
     }
     
@@ -102,7 +90,6 @@ public sealed class Quiz : Aggregate<IQuizDomainEvent>
         Id = @event.Id;
         Name = @event.Name;
         Description = @event.Description;
-        Version = @event.Version;
         var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(@event.Timestamp);
         CreatedAt = timestamp;
         UpdatedAt = timestamp;

@@ -1,7 +1,6 @@
 using Enquizitive.Features.Quiz.Commands;
 using Enquizitive.Features.Quiz.DTOs;
 using Enquizitive.Infrastructure;
-using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,10 +17,10 @@ public static class RouteExtensions
         group.MapPost("/create", async (
                 [FromBody] CreateQuizRequest request,
                 [FromServices] IMediator mediator,
-                [FromServices] IValidator<CreateQuizRequest> validator,
                 [FromServices] EventStore eventStore
             ) =>
             {
+                var validator = new CreateQuizRequestValidator();
                 var result = await validator.ValidateAsync(request);
                 if (!result.IsValid)
                 {
@@ -46,10 +45,10 @@ public static class RouteExtensions
 
         group.MapPost("/update-name", async (
                 [FromBody] UpdateQuizNameRequest request,
-                [FromServices] IMediator mediator,
-                [FromServices] IValidator<UpdateQuizNameRequest> validator
+                [FromServices] IMediator mediator
             ) =>
             {
+                var validator = new UpdateQuizNameValidator();
                 var result = await validator.ValidateAsync(request);
                 if (!result.IsValid)
                 {

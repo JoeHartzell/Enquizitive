@@ -1,10 +1,14 @@
 using System.Text.Json;
 using Amazon.DynamoDBv2.DataModel;
+using Enquizitive.Common;
+
 namespace Enquizitive.Infrastructure;
 
 [DynamoDBTable("Enquizitive")]
 public class EventStoreRecord<TData> where TData : IEventStoreRecordData
 {
+    public const string VersionIndex = "VersionIndex";
+    
     /// <summary>
     /// The primary key of the record.
     /// <example>Quiz#123</example>
@@ -20,10 +24,11 @@ public class EventStoreRecord<TData> where TData : IEventStoreRecordData
     public required string SortKey { get; set; }
 
     [DynamoDBProperty("timestamp")]
-    public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    public long Timestamp { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
     [DynamoDBProperty("version")]
-    public int? Version { get; set; } = 0;
+    [DynamoDBLocalSecondaryIndexRangeKey(VersionIndex)]
+    public int Version { get; set; } = 0;
 
     [DynamoDBProperty("type")]
     public required string Type { get; set; }
@@ -32,7 +37,7 @@ public class EventStoreRecord<TData> where TData : IEventStoreRecordData
     public string SerializedData
     {
         get => JsonSerializer.Serialize(Data);
-        set => Data = JsonSerializer.Deserialize<TData>(value);
+        set => Data = JsonSerializer.Deserialize<TData>(value)!;
     }
 
     [DynamoDBIgnore]

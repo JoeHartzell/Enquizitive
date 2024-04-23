@@ -1,5 +1,6 @@
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.DataModel;
+using Enquizitive.Features.Question;
 using Enquizitive.Features.Quiz;
 using Enquizitive.Infrastructure;
 using FluentValidation;
@@ -11,9 +12,6 @@ builder.Services.AddTransient<EventStore>();
 // Swagger and OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-// FluentValidation
-builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
 // AWS
 var awsOptions = builder.Configuration.GetAWSOptions();
@@ -39,5 +37,6 @@ app.UseHttpsRedirection();
 
 // Routing Extensions
 app.UseQuizRoutes();
+app.UseQuestionRoutes();
 
 app.Run();

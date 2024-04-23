@@ -2,7 +2,7 @@ using FluentValidation;
 
 namespace Enquizitive.Features.Question.Args;
 
-public record CreateAnswerArgs(string Text, bool IsCorrect, string? Rational)
+public record CreateAnswerChoiceArgs(string Text, bool IsCorrect, string? Rational)
 {
    public void Deconstruct(out string text, out bool isCorrect, out string? rational)
    {
@@ -12,10 +12,13 @@ public record CreateAnswerArgs(string Text, bool IsCorrect, string? Rational)
    }
 }
 
-public class CreateAnswerArgsValidator : AbstractValidator<CreateAnswerArgs>
+public class CreateAnswerArgsValidator : AbstractValidator<CreateAnswerChoiceArgs>
 {
    public CreateAnswerArgsValidator()
    {
       RuleFor(x => x.Text).NotEmpty();
+      RuleFor(x => x.Rational)
+         .NotEmpty()
+         .When(x => x.Rational is not null);
    }
 }

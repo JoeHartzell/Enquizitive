@@ -1,9 +1,8 @@
 using FluentValidation;
-using Microsoft.VisualBasic;
 
 namespace Enquizitive.Features.Question.Args;
 
-public record UpdateAnswerTextArgs(Guid AnswerId, string Text)
+public record UpdateAnswerChoiceTextArgs(Guid AnswerId, string Text)
 {
     public void Deconstruct(out Guid answerId, out string text)
     {
@@ -12,9 +11,9 @@ public record UpdateAnswerTextArgs(Guid AnswerId, string Text)
     }
 }
 
-public class UpdateAnswerTextArgsValidator : AbstractValidator<UpdateAnswerTextArgs>
+public class UpdateAnswerTextArgsValidator : AbstractValidator<UpdateAnswerChoiceTextArgs>
 {
-    public UpdateAnswerTextArgsValidator(List<Answer> answers)
+    public UpdateAnswerTextArgsValidator(List<AnswerChoice> answers)
     {
         RuleFor(x => x.AnswerId)
             .Must(x => answers.Any(y => y.Id == x))
